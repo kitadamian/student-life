@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Student Life Simulator</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f0c29;--panel:#1a1a2e;--card:#16213e;--accent:#e94560;
+    --green:#00d2ff;--yellow:#f5a623;--purple:#a855f7;--text:#eee;
+  }
+  body{
+    font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;overflow-x:hidden;
+    background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+  }
+  #app{max-width:480px;margin:0 auto;padding:10px;min-height:100vh;display:flex;flex-direction:column;gap:10px}
+
+  /* Header */
+  .header{text-align:center;padding:10px 0 5px;position:relative}
+  .header h1{font-size:1.4em;background:linear-gradient(90deg,#00d2ff,#a855f7,#e94560);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
+  .header p{font-size:.75em;color:#aaa;margin-top:2px}
+  .day-badge{
+    display:inline-block;background:var(--accent);color:#fff;
+    padding:3px 12px;border-radius:20px;font-size:.8em;font-weight:700;margin-top:4px
+  }
+  .music-btn{
+    position:absolute;top:10px;right:0;background:none;border:1px solid #555;
+    color:#aaa;padding:5px 10px;border-radius:20px;cursor:pointer;font-size:.75em;
+    transition:.2s
+  }
+  .music-btn:hover{border-color:var(--green);color:var(--green)}
+
+  /* Stats bar */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat-card{
+    background:var(--card);border-radius:12px;padding:10px 12px;
+    border:1px solid #ffffff10;
+  }
+  .stat-label{font-size:.65em;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .stat-val{font-size:1.1em;font-weight:700;margin-bottom:4px}
+  .bar{height:6px;background:#ffffff15;border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+  .bar-energy .bar-fill{background:linear-gradient(90deg,#f5a623,#ff6b6b)}
+  .bar-knowledge .bar-fill{background:linear-gradient(90deg,#00d2ff,#a855f7)}
+  .bar-happiness .bar-fill{background:linear-gradient(90deg,#fd79a8,#e84393)}
+  .bar-money .bar-fill{background:linear-gradient(90deg,#00b894,#55efc4)}
+
+  /* Semester progress */
+  .semester-bar{
+    background:var(--card);border-radius:12px;padding:10px 14px;
+    border:1px solid #ffffff10;
+  }
+  .semester-header{display:flex;justify-content:space-between;font-size:.75em;color:#aaa;margin-bottom:6px}
+  .sem-bar{height:8px;background:#ffffff15;border-radius:4px;overflow:hidden}
+  .sem-fill{height:100%;background:linear-gradient(90deg,#a855f7,#e94560);border-radius:4px;transition:width .5s}
+
+  /* Actions */
+  .section-title{font-size:.8em;color:#aaa;text-transform:uppercase;letter-spacing:1px;padding:4px 0}
+  .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .act-btn{
+    background:var(--card);border:1px solid #ffffff15;border-radius:14px;
+    padding:14px 10px;cursor:pointer;text-align:center;transition:.2s;
+    color:var(--text);position:relative;overflow:hidden;
+  }
+  .act-btn:hover,.act-btn:active{transform:scale(.97);border-color:var(--accent)}
+  .act-btn .icon{font-size:1.6em;display:block;margin-bottom:4px}
+  .act-btn .name{font-size:.75em;font-weight:700}
+  .act-btn .desc{font-size:.65em;color:#888;margin-top:2px}
+  .act-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  /* Event box */
+  .event-box{
+    background:var(--card);border-radius:12px;padding:12px 14px;
+    border:1px solid var(--accent);min-height:60px;font-size:.82em;line-height:1.5;
+    position:relative;
+  }
+  .event-title{font-weight:700;color:var(--accent);margin-bottom:4px;font-size:.85em}
+
+  /* Quiz */
+  .quiz-overlay{
+    position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .quiz-box{
+    background:#1a1a2e;border-radius:16px;padding:24px;max-width:420px;width:100%;
+    border:1px solid var(--purple);
+  }
+  .quiz-q{font-size:.9em;font-weight:600;margin-bottom:16px;line-height:1.5}
+  .quiz-opts{display:flex;flex-direction:column;gap:8px}
+  .quiz-opt{
+    background:#ffffff0d;border:1px solid #ffffff20;border-radius:10px;
+    padding:10px 14px;cursor:pointer;font-size:.82em;transition:.2s;color:#eee;text-align:left
+  }
+  .quiz-opt:hover{border-color:var(--green);background:#00d2ff15}
+  .quiz-opt.correct{border-color:#00d2ff;background:#00d2ff20;color:#00d2ff}
+  .quiz-opt.wrong{border-color:var(--accent);background:#e9456020;color:var(--accent)}
+
+  /* End screen */
+  .end-overlay{
+    position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;
+    z-index:200;padding:20px;
+  }
+  .end-box{
+    background:#1a1a2e;border-radius:20px;padding:28px;max-width:380px;width:100%;
+    text-align:center;border:2px solid var(--purple);
+  }
+  .end-box h2{font-size:1.4em;margin-bottom:8px;background:linear-gradient(90deg,#00d2ff,#a855f7);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .grade-display{font-size:3em;margin:12px 0}
+  .end-box p{font-size:.82em;color:#aaa;line-height:1.6;margin-bottom:16px}
+  .restart-btn{
+    background:linear-gradient(90deg,#a855f7,#e94560);color:#fff;border:none;
+    padding:12px 32px;border-radius:24px;font-size:.9em;font-weight:700;cursor:pointer;
+    transition:.2s;
+  }
+  .restart-btn:hover{transform:scale(1.05)}
+
+  /* Author */
+  .author-bar{
+    text-align:center;font-size:.7em;color:#555;padding:8px 0 14px;margin-top:auto;
+  }
+  .author-bar a{color:#a855f7;text-decoration:none;font-weight:600}
+  .author-bar a:hover{color:var(--green)}
+
+  /* Toast */
+  .toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:#ffffff15;backdrop-filter:blur(8px);border:1px solid #ffffff25;
+    color:#fff;padding:8px 20px;border-radius:24px;font-size:.8em;
+    opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap;
+  }
+  .toast.show{opacity:1}
+
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <h1>🎓 Student Life</h1>
+    <p>Przeżyj semestr i zdaj egzaminy!</p>
+    <div class="day-badge" id="dayBadge">Dzień 1 z 60</div>
+    <button class="music-btn" id="musicBtn" onclick="toggleMusic()">🎵 Muzyka</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">⚡ Energia</div>
+      <div class="stat-val" id="valEnergy">100</div>
+      <div class="bar bar-energy"><div class="bar-fill" id="barEnergy" style="width:100%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📚 Wiedza</div>
+      <div class="stat-val" id="valKnowledge">0</div>
+      <div class="bar bar-knowledge"><div class="bar-fill" id="barKnowledge" style="width:0%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">😊 Nastrój</div>
+      <div class="stat-val" id="valHappiness">70</div>
+      <div class="bar bar-happiness"><div class="bar-fill" id="barHappiness" style="width:70%"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">💸 Kasa</div>
+      <div class="stat-val" id="valMoney">500 zł</div>
+      <div class="bar bar-money"><div class="bar-fill" id="barMoney" style="width:50%"></div></div>
+    </div>
+  </div>
+
+  <div class="semester-bar">
+    <div class="semester-header">
+      <span>📅 Semestr</span>
+      <span id="semText">Tydzień 1</span>
+    </div>
+    <div class="sem-bar"><div class="sem-fill" id="semFill" style="width:1%"></div></div>
+  </div>
+
+  <div class="section-title">🎯 Co robisz dzisiaj?</div>
+  <div class="actions-grid" id="actionsGrid">
+    <button class="act-btn" onclick="doAction('study')">
+      <span class="icon">📖</span>
+      <span class="name">Nauka</span>
+      <span class="desc">+wiedzę, -energię</span>
+    </button>
+    <button class="act-btn" onclick="doAction('sleep')">
+      <span class="icon">😴</span>
+      <span class="name">Odpoczynek</span>
+      <span class="desc">+energię, +nastrój</span>
+    </button>
+    <button class="act-btn" onclick="doAction('party')">
+      <span class="icon">🎉</span>
+      <span class="name">Impreza</span>
+      <span class="desc">+nastrój, -energię, -kasa</span>
+    </button>
+    <button class="act-btn" onclick="doAction('work')">
+      <span class="icon">💼</span>
+      <span class="name">Praca dorywcza</span>
+      <span class="desc">+kasa, -energię</span>
+    </button>
+    <button class="act-btn" onclick="doAction('sport')">
+      <span class="icon">🏃</span>
+      <span class="name">Sport</span>
+      <span class="desc">+energia, +nastrój</span>
+    </button>
+    <button class="act-btn" onclick="doAction('library')">
+      <span class="icon">🏛️</span>
+      <span class="name">Biblioteka</span>
+      <span class="desc">+wiedza x1.5</span>
+    </button>
+  </div>
+
+  <div class="section-title">📰 Dziennik</div>
+  <div class="event-box">
+    <div class="event-title" id="eventTitle">Witaj na uczelni!</div>
+    <div id="eventText">Pierwszy dzień semestru. Masz 60 dni, żeby zdobyć jak największą wiedzę i zdać egzaminy końcowe. Zarządzaj mądrze swoim czasem!</div>
+  </div>
+
+  <div class="author-bar">
+    Autor: <a href="https://linktr.ee/kitadamian" target="_blank" rel="noopener">Damian Kita</a> &bull; Student Life Simulator v1.0
+  </div>
+</div>
+
+<!-- Quiz overlay -->
+<div class="quiz-overlay hidden" id="quizOverlay">
+  <div class="quiz-box">
+    <div class="event-title" style="color:var(--purple);margin-bottom:8px">🧠 Pytanie egzaminacyjne</div>
+    <div class="quiz-q" id="quizQ"></div>
+    <div class="quiz-opts" id="quizOpts"></div>
+  </div>
+</div>
+
+<!-- End overlay -->
+<div class="end-overlay hidden" id="endOverlay">
+  <div class="end-box">
+    <h2>🎓 Koniec Semestru!</h2>
+    <div class="grade-display" id="gradeDisplay">?</div>
+    <p id="endText"></p>
+    <div style="font-size:.75em;color:#666;margin-bottom:16px">
+      Autor: <a href="https://linktr.ee/kitadamian" target="_blank" style="color:#a855f7;text-decoration:none">Damian Kita</a>
+    </div>
+    <button class="restart-btn" onclick="restartGame()">🔄 Zagraj ponownie</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== AUDIO ENGINE ====================
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+let musicPlaying = false, musicNodes = [];
+
+function note(freq, start, dur, vol=.12, type='sine') {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, AC.currentTime + start);
+  g.gain.linearRampToValueAtTime(vol, AC.currentTime + start + .02);
+  g.gain.linearRampToValueAtTime(0, AC.currentTime + start + dur - .02);
+  o.start(AC.currentTime + start);
+  o.stop(AC.currentTime + start + dur);
+  musicNodes.push(o);
+}
+
+function playLoFiLoop() {
+  if (!musicPlaying) return;
+  const now = AC.currentTime;
+  // Chord progression: Am - F - C - G
+  const chords = [
+    [220, 261.6, 329.6], [174.6, 220, 261.6], [261.6, 329.6, 392],
+    [196, 246.9, 293.7]
+  ];
+  const barLen = 2;
+  chords.forEach((chord, i) => {
+    chord.forEach(f => note(f, i*barLen, barLen*.95, .06, 'sine'));
+  });
+  // Simple melody
+  const melody = [329.6,392,440,392,349.2,329.6,293.7,261.6,293.7,329.6,349.2,392];
+  melody.forEach((f,i) => note(f, i*(8/melody.length), 8/melody.length*.9, .08, 'triangle'));
+  // Bass
+  [55,43.7,65.4,49].forEach((f,i) => note(f, i*barLen, barLen*.95, .1, 'sawtooth'));
+
+  setTimeout(() => { if(musicPlaying) playLoFiLoop(); }, 8000);
+}
+
+function toggleMusic() {
+  if (AC.state === 'suspended') AC.resume();
+  musicPlaying = !musicPlaying;
+  document.getElementById('musicBtn').textContent = musicPlaying ? '🔇 Muzyka' : '🎵 Muzyka';
+  if (musicPlaying) playLoFiLoop();
+}
+
+function sfx(type) {
+  if (AC.state === 'suspended') AC.resume();
+  const t = AC.currentTime;
+  if (type === 'click') {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    o.frequency.value = 800; o.type = 'sine';
+    g.gain.setValueAtTime(.15, t); g.gain.exponentialRampToValueAtTime(.001, t+.15);
+    o.start(t); o.stop(t+.15);
+  } else if (type === 'correct') {
+    [523, 659, 784].forEach((f,i) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.connect(g); g.connect(AC.destination);
+      o.frequency.value = f; g.gain.setValueAtTime(.12, t+i*.1);
+      g.gain.exponentialRampToValueAtTime(.001, t+i*.1+.3);
+      o.start(t+i*.1); o.stop(t+i*.1+.3);
+    });
+  } else if (type === 'wrong') {
+    [392, 349, 311].forEach((f,i) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.connect(g); g.connect(AC.destination);
+      o.frequency.value = f; o.type = 'sawtooth';
+      g.gain.setValueAtTime(.08, t+i*.1); g.gain.exponentialRampToValueAtTime(.001, t+i*.1+.2);
+      o.start(t+i*.1); o.stop(t+i*.1+.2);
+    });
+  } else if (type === 'level') {
+    [523,659,784,1047].forEach((f,i)=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.connect(g);g.connect(AC.destination);
+      o.frequency.value=f;g.gain.setValueAtTime(.12,t+i*.12);
+      g.gain.exponentialRampToValueAtTime(.001,t+i*.12+.4);
+      o.start(t+i*.12);o.stop(t+i*.12+.5);
+    });
+  }
+}
+
+// ==================== GAME STATE ====================
+let G = {};
+
+function initGame() {
+  G = {
+    day: 1, maxDay: 60,
+    energy: 100, knowledge: 0, happiness: 70, money: 500,
+    acted: false, examsDone: 0, score: 0,
+    streak: 0, // study streak
+  };
+  updateUI();
+  setEvent('Witaj na uczelni! 🎓', 'Masz 60 dni żeby zdobyć jak największą wiedzę i zdać egzaminy. Zarządzaj mądrze swoim czasem! Wskazówka: nauka w bibliotece daje +50% wiedzy.');
+}
+
+const EVENTS = [
+  {d:7,  title:'Kolokwium! 📝', text:'Pierwszy sprawdzian. Odpowiedz poprawnie by zdobyć bonusową wiedzę!', quiz:true},
+  {d:15, title:'Stypendium! 💰', text:'Otrzymałeś stypendium naukowe — +300 zł na koncie!', bonus:{money:300}},
+  {d:20, title:'Projekt grupowy 🤝', text:'Praca zespołowa: wiedza +15, nastrój +10.', bonus:{knowledge:15,happiness:10}},
+  {d:30, title:'Egzamin śródokresowy 📋', text:'Połowa semestru — czas na egzamin!', quiz:true},
+  {d:40, title:'Juwenalia! 🎪', text:'Wielkie święto studenckow. Nastrój +20, ale energia -15.', bonus:{happiness:20,energy:-15}},
+  {d:50, title:'Sesja się zbliża! ⚠️', text:'Ostatnie 10 dni — czas na intensywną naukę! Każda godzina się liczy.', bonus:{}},
+  {d:55, title:'Biblioteka otwarta całą dobę 📚', text:'Biblioteka pracuje całą dobę przez resztę tygodnia. Biblioteka daje teraz +3 wiedzę!', bonus:{}},
+];
+
+const QUIZZES = [
+  {q:'Ile wynosi pierwiastek kwadratowy z 144?', opts:['10','12','14','11'], a:1},
+  {q:'Który kraj ma największą powierzchnię na świecie?', opts:['USA','Chiny','Rosja','Kanada'], a:2},
+  {q:'W którym roku człowiek po raz pierwszy wylądował na Księżycu?', opts:['1965','1969','1971','1973'], a:1},
+  {q:'Jakie jest stężenie CO₂ w atmosferze (ok.)?', opts:['0.04%','0.4%','4%','0.004%'], a:0},
+  {q:'Kto napisał "Quo Vadis"?', opts:['Adam Mickiewicz','Henryk Sienkiewicz','Bolesław Prus','Stefan Żeromski'], a:1},
+  {q:'Ile bitów ma jeden bajt?', opts:['4','16','8','2'], a:2},
+  {q:'Jaka jest stolica Australii?', opts:['Sydney','Melbourne','Canberra','Brisbane'], a:2},
+  {q:'Co to jest DNA?', opts:['Białko','Kwas dezoksyrybonukleinowy','Enzym','Lipid'], a:1},
+  {q:'Ile planet ma Układ Słoneczny?', opts:['7','8','9','10'], a:1},
+  {q:'Kto namalował Monę Lisę?', opts:['Michał Anioł','Rafael','Leonardo da Vinci','Botticelli'], a:2},
+];
+
+let usedQuizzes = [];
+
+function getQuiz() {
+  const available = QUIZZES.filter((_,i) => !usedQuizzes.includes(i));
+  if (!available.length) { usedQuizzes = []; return QUIZZES[0]; }
+  const idx = QUIZZES.indexOf(available[Math.floor(Math.random()*available.length)]);
+  usedQuizzes.push(idx);
+  return QUIZZES[idx];
+}
+
+// ==================== ACTIONS ====================
+const ACTIONS = {
+  study:   {e:-20, k:+15, h:-5,  m:0,    msg:'📖 Uczysz się przez kilka godzin. Wiedza rośnie, ale energia spada.'},
+  sleep:   {e:+40, k:0,   h:+10, m:0,    msg:'😴 Świetny odpoczynek! Czujesz się odświeżony.'},
+  party:   {e:-25, k:0,   h:+30, m:-80,  msg:'🎉 Super impreza! Nastrój w górę, ale portfel trochę chudy.'},
+  work:    {e:-20, k:0,   h:-10, m:+150, msg:'💼 Ciężka praca, ale kasa się zgadza. +150 zł!'},
+  sport:   {e:+15, k:0,   h:+15, m:0,    msg:'🏃 Trening daje kopa! Energia i nastrój w górę.'},
+  library: {e:-15, k:+22, h:+5,  m:0,    msg:'🏛️ Biblioteka — koncentrujesz się i uczysz efektywnie!'},
+};
+
+function doAction(act) {
+  if (AC.state === 'suspended') AC.resume();
+  sfx('click');
+  const a = ACTIONS[act];
+  G.energy    = clamp(G.energy    + a.e);
+  G.knowledge = Math.min(100, Math.max(0, G.knowledge + a.k));
+  G.happiness = clamp(G.happiness + a.h);
+  G.money     = Math.max(0, G.money + a.m);
+
+  if (act === 'study' || act === 'library') {
+    G.streak++;
+    if (G.streak >= 3) { G.knowledge = Math.min(100, G.knowledge + 5); showToast('🔥 Passa nauki! +5 bonus wiedzy'); }
+  } else { G.streak = 0; }
+
+  setEvent('Wybrałeś:', a.msg);
+  advanceDay();
+}
+
+function advanceDay() {
+  G.day++;
+  // Daily energy drain
+  G.energy = clamp(G.energy - 5);
+  G.happiness = clamp(G.happiness - 3);
+
+  // Random event
+  if (Math.random() < .1) {
+    const rnd = [
+      {t:'Zaskoczka! 😱', tx:'Nieoczekiwany wydatek: -100 zł.', b:{money:-100}},
+      {t:'Znalazłeś portfel! 💵', tx:'Ktoś nagrodził Cię za uczciwość: +150 zł!', b:{money:150}},
+      {t:'Świetny wykład! 🌟', tx:'Wyjątkowo inspirujący profesor — wiedza +8.', b:{knowledge:8}},
+      {t:'Kafeina overdose ☕', tx:'Za dużo kawy — energia +20, ale sen będzie płytki.', b:{energy:20}},
+    ];
+    const r = rnd[Math.floor(Math.random()*rnd.length)];
+    applyBonus(r.b);
+    setEvent(r.t, r.tx);
+  }
+
+  // Scheduled events
+  const ev = EVENTS.find(e => e.d === G.day);
+  if (ev) {
+    if (ev.quiz) { showQuiz(ev.title); }
+    else { applyBonus(ev.bonus); setEvent(ev.title, ev.text); sfx('level'); }
+  }
+
+  if (G.day > G.maxDay) { endGame(); return; }
+
+  updateUI();
+  document.getElementById('actionsGrid').querySelectorAll('button').forEach(b => b.disabled = false);
+}
+
+function applyBonus(b) {
+  if (!b) return;
+  if (b.energy)    G.energy    = clamp(G.energy    + b.energy);
+  if (b.knowledge) G.knowledge = Math.min(100, Math.max(0, G.knowledge + b.knowledge));
+  if (b.happiness) G.happiness = clamp(G.happiness + b.happiness);
+  if (b.money)     G.money     = Math.max(0, G.money     + b.money);
+}
+
+function clamp(v) { return Math.min(100, Math.max(0, v)); }
+
+// ==================== QUIZ ====================
+function showQuiz(title) {
+  const q = getQuiz();
+  document.getElementById('quizQ').textContent = q.q;
+  const opts = document.getElementById('quizOpts');
+  opts.innerHTML = '';
+  q.opts.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = o;
+    btn.onclick = () => answerQuiz(i, q.a, btn);
+    opts.appendChild(btn);
+  });
+  document.getElementById('quizOverlay').classList.remove('hidden');
+  sfx('click');
+}
+
+function answerQuiz(chosen, correct, btn) {
+  document.querySelectorAll('.quiz-opt').forEach(b => b.onclick = null);
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    sfx('correct');
+    G.knowledge = Math.min(100, G.knowledge + 20);
+    setTimeout(() => {
+      document.getElementById('quizOverlay').classList.add('hidden');
+      setEvent('Świetna odpowiedź! ✅', 'Odpowiedziałeś poprawnie na pytanie egzaminacyjne. Wiedza +20!');
+      updateUI();
+    }, 1000);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.quiz-opt')[correct].classList.add('correct');
+    sfx('wrong');
+    G.happiness = clamp(G.happiness - 10);
+    setTimeout(() => {
+      document.getElementById('quizOverlay').classList.add('hidden');
+      setEvent('Zła odpowiedź ❌', 'Niestety się myliłeś. Nastrój -10. Wróć do nauki!');
+      updateUI();
+    }, 1200);
+  }
+}
+
+// ==================== END GAME ====================
+function endGame() {
+  const k = G.knowledge;
+  let grade, msg;
+  if (k >= 90)      { grade='5.0 🏆'; msg='Wybitny wynik! Jesteś najlepszym studentem roku. Gratulacje!'; sfx('correct'); }
+  else if (k >= 75) { grade='4.5 🌟'; msg='Bardzo dobry wynik! Twoja wiedza robi wrażenie.'; sfx('correct'); }
+  else if (k >= 60) { grade='4.0 👍'; msg='Dobra robota! Solidne przygotowanie do egzaminów.'; sfx('level'); }
+  else if (k >= 45) { grade='3.5 📘'; msg='Zdałeś, ale mogło być lepiej. Na następny semestr zacznij wcześniej!'; }
+  else if (k >= 30) { grade='3.0 😅'; msg='Ledwo zdałeś. Więcej czasu w bibliotece, mniej na imprezach!'; sfx('wrong'); }
+  else              { grade='2.0 💀'; msg='Oblałeś egzamin. Nie poddawaj się — spróbuj jeszcze raz!'; sfx('wrong'); }
+
+  document.getElementById('gradeDisplay').textContent = grade;
+  document.getElementById('endText').textContent = `Wiedza: ${k}/100 | Kasa: ${G.money} zł | Nastrój: ${G.happiness}/100\n\n${msg}`;
+  document.getElementById('endOverlay').classList.remove('hidden');
+}
+
+function restartGame() {
+  document.getElementById('endOverlay').classList.add('hidden');
+  usedQuizzes = [];
+  initGame();
+  sfx('click');
+}
+
+// ==================== UI ====================
+function updateUI() {
+  document.getElementById('dayBadge').textContent = `Dzień ${G.day} z ${G.maxDay}`;
+  document.getElementById('semText').textContent = `Tydzień ${Math.ceil(G.day/7)}`;
+  document.getElementById('semFill').style.width = (G.day/G.maxDay*100) + '%';
+
+  document.getElementById('valEnergy').textContent = G.energy;
+  document.getElementById('barEnergy').style.width = G.energy + '%';
+  document.getElementById('valKnowledge').textContent = G.knowledge;
+  document.getElementById('barKnowledge').style.width = G.knowledge + '%';
+  document.getElementById('valHappiness').textContent = G.happiness;
+  document.getElementById('barHappiness').style.width = G.happiness + '%';
+  document.getElementById('valMoney').textContent = G.money + ' zł';
+  document.getElementById('barMoney').style.width = Math.min(100, G.money/10) + '%';
+
+  // Disable buttons if too tired
+  document.querySelectorAll('.act-btn').forEach(b => {
+    const act = b.getAttribute('onclick').replace("doAction('","").replace("')","");
+    const cost = ACTIONS[act] ? Math.abs(Math.min(0, ACTIONS[act].e)) : 0;
+    b.disabled = G.energy < cost && cost > 0;
+  });
+}
+
+function setEvent(title, text) {
+  document.getElementById('eventTitle').textContent = title;
+  document.getElementById('eventText').textContent = text;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+initGame();
+</script>
+</body>
+</html>
